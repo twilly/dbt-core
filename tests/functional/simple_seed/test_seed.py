@@ -24,7 +24,7 @@ def test_simple_seed(
     write_profile_data(profiles_root, dbt_profile_data)
     # setup project
     project = ProjectDefinition(
-        project_data={'seeds': {'quote_columns': False}},
+        project_config_update={'seeds': {'quote_columns': False}},
         seeds={'data.csv': 'a,b\n1,hello\n2,goodbye'},
     )
     # write project
@@ -35,7 +35,7 @@ def test_simple_seed(
     # this context manager takes care of creating and tearing down a unique
     # schema
     with built_schema_ctx:
-        results, success = run_dbt(['seed'], str(profiles_root), strict=False)
+        results, success = run_dbt(['seed'], str(profiles_root))
         assert success is True
         assert len(results) == 1
 

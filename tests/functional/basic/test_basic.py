@@ -13,7 +13,7 @@ def test_basic(
     write_profile_data(profiles_root, dbt_profile_data)
     # setup project
     project = ProjectDefinition(
-        project_data={'seeds': {'quote_columns': False}},
+        project_config_update={'seeds': {'quote_columns': False}},
         models={'my_model.sql': my_model_sql},
     )
     # write project
@@ -25,7 +25,7 @@ def test_basic(
     # this context manager takes care of creating and tearing down a unique
     # schema
     with built_schema_ctx:
-        results, success = run_dbt(['run'], str(profiles_root), strict=False)
+        results, success = run_dbt(['run'], str(profiles_root))
         assert success is True
         assert len(results) == 1
         manifest = get_manifest(project_root)

@@ -21,7 +21,7 @@ class ProjectDefinition:
         name='test',
         version='0.1.0',
         profile='test',
-        project_data=None,
+        project_config_update=None,
         packages=None,
         models=None,
         macros=None,
@@ -29,15 +29,15 @@ class ProjectDefinition:
         seeds=None,
         project_root=None,
     ):
-        # default project config. Additional config comes from 'project_data'
-        self.project = {
+        # default project config. Additional config comes from 'project_config_update'
+        self.project_config = {
             'config-version': 2,
             'name': name,
             'version': version,
             'profile': profile,
         }
-        if project_data:
-            self.project.update(project_data)
+        if project_config_update:
+            self.project_config.update(project_config_update)
         self.packages = packages
         self.models = models
         self.macros = macros
@@ -69,11 +69,11 @@ class ProjectDefinition:
                 data = yaml.safe_dump(self.packages)
             project_dir.join('packages.yml').write(data)
 
-    def write_config(self, project_dir, remove=False):
-        cfg = project_dir.join('dbt_project.yml')
+    def write_project_config(self, project_dir, remove=False):
+        runtime_config_file = project_dir.join('dbt_project.yml')
         if remove:
-            cfg.remove()
-        cfg.write(yaml.safe_dump(self.project))
+            runtime_config_file.remove()
+        runtime_config_file.write(yaml.safe_dump(self.project_config))
 
     def _write_values(self, project_dir, remove, name, value):
         if remove:
@@ -99,7 +99,7 @@ class ProjectDefinition:
             project_dir.remove()
             project_dir.mkdir()
         self.write_packages(project_dir)
-        self.write_config(project_dir)
+        self.write_project_config(project_dir)
         self.write_models(project_dir)
         self.write_macros(project_dir)
         self.write_snapshots(project_dir)
@@ -168,15 +168,15 @@ def built_schema(schema, project_dir, profiles_dir):
     try:
         # TODO: this was necessary to set the correct target directory!
         flags.PROFILES_DIR = profiles_dir
-        cfg = RuntimeConfig.from_args(args)
+        runtime_config = RuntimeConfig.from_args(args)
     finally:
         os.chdir(start)
-    register_adapter(cfg)
-    adapter = get_adapter(cfg)
+    register_adapter(runtime_config)
+    adapter = get_adapter(runtime_config)
     execute(adapter, 'drop schema if exists {} cascade'.format(schema))
     execute(adapter, 'create schema {}'.format(schema))
     yield
-    adapter = get_adapter(cfg)
+    adapter = get_adapter(runtime_config)
     adapter.cleanup_connections()
     execute(adapter, 'drop schema if exists {} cascade'.format(schema))
 
@@ -188,22 +188,21 @@ def write_profile_data(profiles_dir, profile_data):
     return profile_data
 
 
-def run_dbt(args: List[str], profiles_dir: str, strict: bool = True):
+def run_dbt(args: List[str], profiles_dir: str):
+    # The logger will complain about already being initialized if
+    # we don't do this.
     log_manager.reset_handlers()
 
     final_args = []
 
-    # TODO: when would you want to flip this cli arg?
-    if strict:
-        final_args.append('--strict')
     if os.getenv('DBT_TEST_SINGLE_THREADED') in ('y', 'Y', '1'):
         final_args.append('--single-threaded')
 
     final_args.extend(args)
 
-    final_args.extend(['--profiles-dir', profiles_dir, '--log-cache-events'])
+    final_args.extend(['--profiles-dir', profiles_dir])
 
-    logger.info("Invoking dbt with {}".format(final_args))
+    print("Invoking dbt with {}".format(final_args))
     return handle_and_check(final_args)
 
 def get_manifest(project_dir):
