@@ -19,6 +19,8 @@ def profiles_root(tmpdir):
     return tmpdir.mkdir('profile')
 
 
+# This used the pytest 'tmpdir' fixture to create a directory for the project,
+# called 'project_dir'
 @pytest.fixture
 def project_root(tmpdir):
     # tmpdir docs - https://docs.pytest.org/en/6.2.x/tmpdir.html

@@ -12,6 +12,7 @@ from dbt.main import handle_and_check
 from dbt import flags
 from dbt.config import RuntimeConfig
 from dbt.logger import GLOBAL_LOGGER as logger, log_manager
+from dbt.contracts.graph.manifest import Manifest
 
 
 class ProjectDefinition:
@@ -26,7 +27,9 @@ class ProjectDefinition:
         macros=None,
         snapshots=None,
         seeds=None,
+        project_root=None,
     ):
+        # default project config. Additional config comes from 'project_data'
         self.project = {
             'config-version': 2,
             'name': name,
@@ -202,3 +205,13 @@ def run_dbt(args: List[str], profiles_dir: str, strict: bool = True):
 
     logger.info("Invoking dbt with {}".format(final_args))
     return handle_and_check(final_args)
+
+def get_manifest(project_dir):
+    path = project_dir.join('target', 'partial_parse.msgpack')
+    if os.path.exists(path):                         
+        with open(path, 'rb') as fp:        
+            manifest_mp = fp.read()    
+        manifest: Manifest = Manifest.from_msgpack(manifest_mp)                 
+        return manifest                                                                       
+    else:                                         
+        return None
